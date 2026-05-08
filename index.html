@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f5f5f7">
+  <title>说人话天气</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css?v=9">
+</head>
+<body>
+  <!-- Top Navigation -->
+  <nav class="nav-tabs">
+    <button class="nav-tab active" data-page="home">
+      <span class="nav-tab-label">天气</span>
+    </button>
+    <button class="nav-tab" data-page="compare">
+      <span class="nav-tab-label">对比</span>
+    </button>
+    <button class="nav-tab" data-page="settings">
+      <span class="nav-tab-label">设置</span>
+    </button>
+  </nav>
+
+  <div class="app">
+    <div id="app-content">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">获取天气中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Scripts -->
+  <script src="js/storage.js?v=9"></script>
+  <script src="js/weather.js?v=9"></script>
+  <script src="js/compare.js?v=9"></script>
+  <script src="js/clothing.js?v=9"></script>
+  <script src="js/auth.js?v=9"></script>
+  <script src="js/sync.js?v=9"></script>
+  <script src="js/app.js?v=9"></script>
+</body>
+</html>

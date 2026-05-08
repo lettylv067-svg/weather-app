@@ -1,0 +1,5 @@
+.DS_Store
+.workbuddy/
+*.log
+node_modules/
+.vscode/
