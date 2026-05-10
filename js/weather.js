@@ -79,6 +79,65 @@ const Weather = {
     return null;
   },
 
+  // 获取 7 天预报（趋势图用）
+  async get7dForecast(locationId) {
+    const key = this.getKey();
+    const url = `${this.BASE_URL}/v7/weather/7d?location=${locationId}&key=${key}&lang=zh`;
+    const data = await this.request(url);
+    return data.daily.map(day => ({
+      date: day.fxDate,
+      tempMax: parseInt(day.tempMax),
+      tempMin: parseInt(day.tempMin),
+      textDay: day.textDay,
+      textNight: day.textNight,
+      iconDay: day.iconDay,
+      iconNight: day.iconNight,
+      uvIndex: parseInt(day.uvIndex || 0),
+      windScaleDay: day.windScaleDay,
+      precip: parseFloat(day.precip || 0),
+    }));
+  },
+
+  // 获取未来 24 小时预报（提醒用）
+  async get24hForecast(locationId) {
+    const key = this.getKey();
+    const url = `${this.BASE_URL}/v7/weather/24h?location=${locationId}&key=${key}&lang=zh`;
+    const data = await this.request(url);
+    return (data.hourly || []).map(h => ({
+      time: h.fxTime,
+      temp: parseInt(h.temp),
+      text: h.text,
+      icon: h.icon,
+      precip: parseFloat(h.precip || 0),
+      pop: parseInt(h.pop || 0), // 降水概率 %
+    }));
+  },
+
+  // 获取未来 2 小时分钟级降水（最精准的"几点下雨"）
+  async getMinutelyRain(lon, lat) {
+    const key = this.getKey();
+    const url = `${this.BASE_URL}/v7/minutely/5m?location=${lon},${lat}&key=${key}&lang=zh`;
+    try {
+      const data = await this.request(url);
+      return {
+        summary: data.summary,
+        minutely: (data.minutely || []).map(m => ({
+          time: m.fxTime,
+          precip: parseFloat(m.precip || 0),
+          type: m.type,
+        })),
+      };
+    } catch (e) {
+      return null;
+    }
+  },
+
+  // 判断 icon 是否为雨天
+  isRainyIcon(icon) {
+    const n = parseInt(icon);
+    return n >= 300 && n < 400;
+  },
+
   // 获取历史天气（最近10天可查）
   async getHistory(locationId, date) {
     const key = this.getKey();
@@ -117,6 +176,8 @@ const Weather = {
       adm1: loc.adm1,  // 省/州
       adm2: loc.adm2,  // 市
       country: loc.country,
+      lat: loc.lat,
+      lon: loc.lon,
     }));
   },
 

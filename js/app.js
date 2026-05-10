@@ -96,10 +96,13 @@ const App = {
     try {
       const city = Storage.getHomeCity();
       
-      // 并行获取实时天气和今日预报
-      const [weather, todayForecast] = await Promise.all([
+      // 并行获取实时天气、今日预报、7天预报、24小时预报、分钟级降水
+      const [weather, todayForecast, forecast7d, hourly, minutely] = await Promise.all([
         Weather.getNow(city.id),
         Weather.getTodayForecast(city.id).catch(() => null),
+        Weather.get7dForecast(city.id).catch(() => null),
+        Weather.get24hForecast(city.id).catch(() => null),
+        (city.lon && city.lat) ? Weather.getMinutelyRain(city.lon, city.lat).catch(() => null) : Promise.resolve(null),
       ]);
       this.weatherData = weather;
       
@@ -136,6 +139,33 @@ const App = {
         } catch (e) {
           console.log('历史天气获取失败，不影响主功能:', e.message);
         }
+      }
+
+      // ===== 提醒卡（v10：带伞/降温/高温等）=====
+      const alertList = Alerts.generate({
+        now: weather,
+        today: todayForecast,
+        today7d: forecast7d ? forecast7d[0] : null,
+        hourly: hourly,
+        minutely: minutely,
+        yesterday: yesterday,
+      });
+
+      let alertsHTML = '';
+      if (alertList && alertList.length > 0) {
+        alertsHTML = `
+          <div class="glass-card alert-card" style="animation-delay: 0.15s;">
+            ${alertList.map(a => `
+              <div class="alert-item alert-${a.type}">
+                <div class="alert-icon">${a.icon}</div>
+                <div class="alert-content">
+                  <div class="alert-title">${a.title}</div>
+                  <div class="alert-detail">${a.detail}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
       }
 
       // ===== 温差模块（v6：最高温/最低温双维度）=====
@@ -233,6 +263,8 @@ const App = {
             <div class="temp-condition">${weather.text}${weather.feelsLike !== weather.temp ? ` · 体感 ${weather.feelsLike}°` : ''}</div>
           </div>
         </div>
+
+        ${alertsHTML}
 
         <div class="glass-card" style="animation-delay: 0.2s;">
           ${deltaHTML}
@@ -424,9 +456,11 @@ const App = {
     `;
 
     try {
-      const [homeWeather, compWeather] = await Promise.all([
+      const [homeWeather, compWeather, homeForecast7d, compForecast7d] = await Promise.all([
         Weather.getNow(homeCity.id),
         Weather.getNow(compareCity.id),
+        Weather.get7dForecast(homeCity.id).catch(() => null),
+        Weather.get7dForecast(compareCity.id).catch(() => null),
       ]);
 
       const delta = Compare.getCityDelta(homeWeather, compWeather, homeCity.name, compareCity.name);
@@ -439,6 +473,13 @@ const App = {
       rec.accessory.forEach(item => allItems.push({ name: item, icon: rec.icons.accessory }));
 
       this.compareWeatherData = compWeather;
+
+      // v10: 7 日趋势图
+      const trendHTML = (homeForecast7d && compForecast7d)
+        ? `<div class="glass-card" style="animation-delay: 0.25s;">
+            ${Compare.render7dTrendChart(homeForecast7d, compForecast7d, homeCity.name, compareCity.name)}
+          </div>`
+        : '';
 
       container.innerHTML = `
         <div class="glass-card" style="animation-delay: 0.1s;">
@@ -466,6 +507,8 @@ const App = {
             </div>
           </div>
         </div>
+
+        ${trendHTML}
 
         <div class="glass-card" style="animation-delay: 0.3s;">
           <div class="clothing-section">

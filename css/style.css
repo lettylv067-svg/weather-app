@@ -684,6 +684,118 @@ body {
   cursor: pointer;
 }
 
+/* ============ v10: Alert Card ============ */
+.alert-card {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 0.5px solid var(--color-divider-soft);
+}
+
+.alert-item:last-child {
+  border-bottom: none;
+}
+
+.alert-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.alert-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-ink);
+  letter-spacing: -0.374px;
+  margin-bottom: 2px;
+}
+
+.alert-detail {
+  font-size: 13px;
+  color: var(--color-body-muted);
+  letter-spacing: -0.224px;
+  line-height: 1.38;
+}
+
+.alert-item.alert-rain {
+  background: linear-gradient(90deg, rgba(0, 102, 204, 0.06) 0%, transparent 100%);
+}
+
+.alert-item.alert-cooling {
+  background: linear-gradient(90deg, rgba(0, 102, 204, 0.05) 0%, transparent 100%);
+}
+
+.alert-item.alert-warming,
+.alert-item.alert-hot {
+  background: linear-gradient(90deg, rgba(255, 107, 53, 0.06) 0%, transparent 100%);
+}
+
+/* ============ v10: 7 Day Trend Chart ============ */
+.trend-chart-wrapper {
+  padding: 4px 0;
+}
+
+.trend-chart-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: 12px;
+  letter-spacing: -0.374px;
+}
+
+.trend-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--color-body-muted);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.trend-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trend-legend-rain {
+  color: var(--color-primary);
+  font-size: 12px;
+}
+
+.trend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.trend-chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.trend-chart-hint {
+  font-size: 11px;
+  color: var(--color-ink-muted-48);
+  text-align: center;
+  margin-top: 8px;
+  letter-spacing: -0.11px;
+}
+
 .text-link:active {
   opacity: 0.7;
 }

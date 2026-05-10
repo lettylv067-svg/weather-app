@@ -137,4 +137,111 @@ const Compare = {
     const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     return `${month}月${day}日 ${weekDays[d.getDay()]}`;
   },
+
+  // ================== v10: 7 日双城趋势图 ==================
+  // homeData / compareData：7 天预报数组
+  render7dTrendChart(homeData, compareData, homeName, compareName) {
+    if (!homeData || !compareData || homeData.length === 0) return '';
+
+    const days = Math.min(7, homeData.length, compareData.length);
+    const W = 320, H = 200;
+    const PAD_L = 28, PAD_R = 18, PAD_T = 20, PAD_B = 40;
+    const chartW = W - PAD_L - PAD_R;
+    const chartH = H - PAD_T - PAD_B;
+
+    // 计算温度范围
+    const allTemps = [];
+    for (let i = 0; i < days; i++) {
+      allTemps.push(homeData[i].tempMax, homeData[i].tempMin);
+      allTemps.push(compareData[i].tempMax, compareData[i].tempMin);
+    }
+    const tMin = Math.min(...allTemps);
+    const tMax = Math.max(...allTemps);
+    const tRange = Math.max(tMax - tMin, 4);
+    const tMinPad = tMin - 2;
+    const tMaxPad = tMax + 2;
+    const tRangePad = tMaxPad - tMinPad;
+
+    // x / y 映射
+    const x = (i) => PAD_L + (chartW / (days - 1)) * i;
+    const y = (t) => PAD_T + chartH - ((t - tMinPad) / tRangePad) * chartH;
+
+    // 日期轴标签
+    const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+    const labels = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(homeData[i].date);
+      const label = i === 0 ? '今' : i === 1 ? '明' : `周${weekDays[d.getDay()]}`;
+      const day = d.getDate();
+      labels.push({ x: x(i), label, day, rainHome: Weather.isRainyIcon(homeData[i].iconDay), rainCompare: Weather.isRainyIcon(compareData[i].iconDay) });
+    }
+
+    // 雨天背景柱（两城市各占一半，简单处理：两者都下雨才整列柱，否则用 ☔ 图标）
+    const rainBgBars = labels.map((l, i) => {
+      if (l.rainHome && l.rainCompare) {
+        const barW = chartW / (days - 1) * 0.7;
+        return `<rect x="${l.x - barW/2}" y="${PAD_T}" width="${barW}" height="${chartH}" fill="#0066cc" opacity="0.08" rx="4"/>`;
+      }
+      return '';
+    }).join('');
+
+    // 折线路径
+    const line = (data, key) => {
+      return data.slice(0, days).map((d, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(d[key])}`).join(' ');
+    };
+
+    const homePathMax = line(homeData, 'tempMax');
+    const homePathMin = line(homeData, 'tempMin');
+    const comparePathMax = line(compareData, 'tempMax');
+    const comparePathMin = line(compareData, 'tempMin');
+
+    // 数据点 + 温度标签
+    const pointsHome = homeData.slice(0, days).map((d, i) => `
+      <circle cx="${x(i)}" cy="${y(d.tempMax)}" r="3" fill="#0066cc"/>
+      <circle cx="${x(i)}" cy="${y(d.tempMin)}" r="2.5" fill="#0066cc" opacity="0.5"/>
+    `).join('');
+    const pointsCompare = compareData.slice(0, days).map((d, i) => `
+      <circle cx="${x(i)}" cy="${y(d.tempMax)}" r="3" fill="#FF6B35"/>
+      <circle cx="${x(i)}" cy="${y(d.tempMin)}" r="2.5" fill="#FF6B35" opacity="0.5"/>
+    `).join('');
+
+    // 最高温数字标注（两城市分别标在点上方/下方避免重叠）
+    const tempLabelsHome = homeData.slice(0, days).map((d, i) => 
+      `<text x="${x(i)}" y="${y(d.tempMax) - 8}" text-anchor="middle" font-size="10" fill="#0066cc" font-weight="600">${d.tempMax}°</text>`
+    ).join('');
+    const tempLabelsCompare = compareData.slice(0, days).map((d, i) => 
+      `<text x="${x(i)}" y="${y(d.tempMax) - 8}" text-anchor="middle" font-size="10" fill="#FF6B35" font-weight="600" opacity="${d.tempMax === homeData[i].tempMax ? 0 : 1}">${d.tempMax}°</text>`
+    ).join('');
+
+    // x 轴标签 + 雨天图标
+    const xLabels = labels.map(l => `
+      <text x="${l.x}" y="${H - 18}" text-anchor="middle" font-size="11" fill="#6e6e73" font-weight="500">${l.label}</text>
+      <text x="${l.x}" y="${H - 6}" text-anchor="middle" font-size="9" fill="#86868b">${l.day}日</text>
+      ${(l.rainHome || l.rainCompare) ? `<text x="${l.x}" y="${PAD_T - 6}" text-anchor="middle" font-size="10">☔</text>` : ''}
+    `).join('');
+
+    return `
+      <div class="trend-chart-wrapper">
+        <div class="trend-chart-title">未来 7 天气温趋势</div>
+        <div class="trend-chart-legend">
+          <span class="trend-legend-item"><span class="trend-dot" style="background:#0066cc"></span>${homeName}</span>
+          <span class="trend-legend-item"><span class="trend-dot" style="background:#FF6B35"></span>${compareName}</span>
+          <span class="trend-legend-rain">☔ 雨天</span>
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" class="trend-chart-svg" xmlns="http://www.w3.org/2000/svg">
+          ${rainBgBars}
+          <path d="${homePathMax}" stroke="#0066cc" stroke-width="2" fill="none"/>
+          <path d="${homePathMin}" stroke="#0066cc" stroke-width="1.5" fill="none" stroke-dasharray="3,3" opacity="0.6"/>
+          <path d="${comparePathMax}" stroke="#FF6B35" stroke-width="2" fill="none"/>
+          <path d="${comparePathMin}" stroke="#FF6B35" stroke-width="1.5" fill="none" stroke-dasharray="3,3" opacity="0.6"/>
+          ${pointsHome}
+          ${pointsCompare}
+          ${tempLabelsHome}
+          ${tempLabelsCompare}
+          ${xLabels}
+        </svg>
+        <div class="trend-chart-hint">实线 = 最高温，虚线 = 最低温</div>
+      </div>
+    `;
+  },
 };

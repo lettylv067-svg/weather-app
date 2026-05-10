@@ -1,5 +1,6 @@
 // Service Worker — 说人话天气预报
-const CACHE_NAME = 'weather-app-v1';
+// v10: 时间戳版本号 + network-first 策略，每次部署自动刷新 PWA
+const CACHE_NAME = 'weather-app-v10-' + Date.now();
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -8,6 +9,9 @@ const STATIC_ASSETS = [
   '/js/weather.js',
   '/js/compare.js',
   '/js/clothing.js',
+  '/js/alerts.js',
+  '/js/auth.js',
+  '/js/sync.js',
   '/js/app.js',
   '/manifest.json',
 ];
@@ -34,19 +38,22 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// 请求拦截：静态资源走缓存，API请求走网络优先
+// 请求拦截：静态资源走 network-first（确保新版本能拿到），失败走缓存
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // API 请求：网络优先，失败走缓存
-  if (url.hostname.includes('qweather.com')) {
+  if (url.hostname.includes('qweather.com') || url.hostname.includes('supabase.co')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, clone);
-          });
+          // 只缓存和风天气请求，不缓存 Supabase（认证数据不应缓存）
+          if (url.hostname.includes('qweather.com')) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, clone);
+            });
+          }
           return response;
         })
         .catch(() => caches.match(event.request))
@@ -54,10 +61,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 静态资源：缓存优先
+  // 静态资源：网络优先，失败回落缓存（确保更新及时）
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((response) => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, clone);
+        });
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
