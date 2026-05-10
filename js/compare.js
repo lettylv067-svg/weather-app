@@ -104,28 +104,56 @@ const Compare = {
     };
   },
 
-  // 跨城市对比
-  getCityDelta(cityAWeather, cityBWeather, cityAName, cityBName) {
-    const diff = cityBWeather.feelsLike - cityAWeather.feelsLike;
-    
-    if (diff === 0) {
+  // 跨城市对比（v10.1：基于今日预报最高温，与趋势图口径一致）
+  // cityAToday / cityBToday: { tempMax, tempMin } —— 今日预报数据
+  getCityDelta(cityAWeather, cityBWeather, cityAName, cityBName, cityAToday, cityBToday) {
+    // 优先用今日预报最高温（跟趋势图一致），降级用实时体感
+    const useForecast = cityAToday && cityBToday &&
+      cityAToday.tempMax !== undefined && cityBToday.tempMax !== undefined;
+
+    const aMax = useForecast ? cityAToday.tempMax : cityAWeather.feelsLike;
+    const bMax = useForecast ? cityBToday.tempMax : cityBWeather.feelsLike;
+    const aMin = useForecast ? cityAToday.tempMin : null;
+    const bMin = useForecast ? cityBToday.tempMin : null;
+
+    const maxDiff = bMax - aMax;
+    const abs = Math.abs(maxDiff);
+    const bWarmer = maxDiff > 0;
+
+    // 最低温差（仅在两边都有预报时）
+    let minDeltaText = '';
+    if (aMin !== null && bMin !== null) {
+      const minDiff = bMin - aMin;
+      const minAbs = Math.abs(minDiff);
+      if (minAbs >= 3) {
+        minDeltaText = minDiff > 0
+          ? `早晚也比${cityAName}暖 ${minAbs}°C`
+          : `⚠️ 早晚比${cityAName}冷 ${minAbs}°C`;
+      }
+    }
+
+    const metricLabel = useForecast ? '白天最高温' : '此刻体感';
+
+    if (maxDiff === 0) {
       return {
         value: 0,
-        text: `${cityBName}和${cityAName}体感一样`,
+        text: `${cityBName}${metricLabel}和${cityAName}一样`,
         type: 'same',
+        display: '±0°C',
+        minDeltaText,
+        metricLabel,
       };
     }
 
-    const abs = Math.abs(diff);
-    const bWarmer = diff > 0;
-
     return {
-      value: diff,
-      text: bWarmer 
-        ? `${cityBName}比${cityAName}热 ${abs}°C`
-        : `${cityBName}比${cityAName}冷 ${abs}°C`,
+      value: maxDiff,
+      text: bWarmer
+        ? `${cityBName}${metricLabel}比${cityAName}高 ${abs}°C`
+        : `${cityBName}${metricLabel}比${cityAName}低 ${abs}°C`,
       type: bWarmer ? 'warmer' : 'cooler',
       display: bWarmer ? `+${abs}°C` : `-${abs}°C`,
+      minDeltaText,
+      metricLabel,
     };
   },
 

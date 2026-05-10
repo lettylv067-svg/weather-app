@@ -463,7 +463,11 @@ const App = {
         Weather.get7dForecast(compareCity.id).catch(() => null),
       ]);
 
-      const delta = Compare.getCityDelta(homeWeather, compWeather, homeCity.name, compareCity.name);
+      // v10.1：今日预报（与趋势图口径一致）
+      const homeToday = homeForecast7d && homeForecast7d[0];
+      const compToday = compForecast7d && compForecast7d[0];
+
+      const delta = Compare.getCityDelta(homeWeather, compWeather, homeCity.name, compareCity.name, homeToday, compToday);
 
       // 目的地穿衣建议
       const rec = Clothing.getRecommendation(compWeather.feelsLike);
@@ -487,6 +491,7 @@ const App = {
             <div class="delta-value ${delta.type}">${delta.display || '±0°C'}</div>
             <div class="delta-label">${delta.text}</div>
             <div class="delta-badge ${delta.type}">${delta.type === 'warmer' ? '🔥 更热' : delta.type === 'cooler' ? '❄️ 更冷' : '🤝 一样'}</div>
+            ${delta.minDeltaText ? `<div class="delta-sub-info">${delta.minDeltaText}</div>` : ''}
           </div>
         </div>
 
@@ -495,14 +500,14 @@ const App = {
             <div class="city-card">
               <div class="city-card-name">${homeCity.name}</div>
               <div class="city-card-temp">${homeWeather.temp}°</div>
-              <div class="city-card-feels">体感 ${homeWeather.feelsLike}°</div>
+              <div class="city-card-feels">${homeToday ? `今日 ${homeToday.tempMin}~${homeToday.tempMax}°` : `体感 ${homeWeather.feelsLike}°`}</div>
               <div class="city-card-feels" style="margin-top: 4px;">${homeWeather.text}</div>
             </div>
             <div class="city-compare-vs">VS</div>
             <div class="city-card">
               <div class="city-card-name">${compareCity.name}</div>
               <div class="city-card-temp">${compWeather.temp}°</div>
-              <div class="city-card-feels">体感 ${compWeather.feelsLike}°</div>
+              <div class="city-card-feels">${compToday ? `今日 ${compToday.tempMin}~${compToday.tempMax}°` : `体感 ${compWeather.feelsLike}°`}</div>
               <div class="city-card-feels" style="margin-top: 4px;">${compWeather.text}</div>
             </div>
           </div>
